@@ -1,0 +1,88 @@
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-slate-800">Financial Overview</h1>
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-slate-500">Health Score</span>
+            <div class="px-3 py-1 bg-brand-50 text-brand-700 font-bold rounded-full border border-brand-200 shadow-sm">
+                {{ healthScore() }} / 100
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div
+            class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-3 mb-2 text-slate-500">
+                <div class="p-2 bg-brand-50 rounded-lg text-brand-600">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 class="font-medium">Total Net Worth</h3>
+            </div>
+            <div>
+                <div class="text-3xl font-bold text-slate-800 tracking-tight">{{ netWorth() |
+                    currency:'INR':'symbol':'1.0-0' }}</div>
+                <div class="text-sm font-medium mt-1"
+                    [ngClass]="netWorthChange().isPositive ? 'text-brand-600' : 'text-danger-600'">
+                    {{ netWorthChange().text }}
+                </div>
+            </div>
+        </div>
+
+        <div
+            class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-3 mb-2 text-slate-500">
+                <div class="p-2 bg-accent-50 rounded-lg text-accent-600">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <h3 class="font-medium">Total Assets</h3>
+            </div>
+            <div>
+                <div class="text-3xl font-bold text-slate-800 tracking-tight">{{ assets() |
+                    currency:'INR':'symbol':'1.0-0' }}</div>
+            </div>
+        </div>
+
+        <div
+            class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-3 mb-2 text-slate-500">
+                <div class="p-2 bg-danger-50 rounded-lg text-danger-600">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                </div>
+                <h3 class="font-medium">Total Liabilities</h3>
+            </div>
+            <div>
+                <div class="text-3xl font-bold text-slate-800 tracking-tight">{{ liabilities() |
+                    currency:'INR':'symbol':'1.0-0' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">Historical Net Worth Trend</h2>
+            <div class="h-80 w-full" echarts [options]="netWorthChartOptions()"></div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-slate-800">Asset Allocation</h2>
+                <div class="flex items-center gap-4 text-xs font-medium text-slate-500">
+                    <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Current
+                    </div>
+                    <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-300"></span> Target
+                    </div>
+                </div>
+            </div>
+            <div class="h-80 w-full" echarts [options]="allocationChartOptions()"></div>
+        </div>
+    </div>
+</div>

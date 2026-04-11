@@ -1,0 +1,257 @@
+<div class="space-y-8">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Equity Investments Tracker</h1>
+            <p class="text-sm text-slate-500 mt-1">Track fund performance and recurring SIP ledger.</p>
+        </div>
+        <button (click)="toggleForm()"
+            class="bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-xl transition-colors shadow-sm flex items-center gap-2">
+            <svg *ngIf="!showForm()" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <svg *ngIf="showForm()" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            {{ showForm() ? 'Cancel' : 'Add Investment' }}
+        </button>
+    </div>
+
+    <!-- Investment Form -->
+    <div *ngIf="showForm()"
+        class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
+        <h3 class="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">
+            {{ editingId() ? 'Edit Investment' : 'New Investment Entry' }}
+        </h3>
+
+        <form [formGroup]="investForm" (ngSubmit)="onSubmit()" class="space-y-6">
+            <!-- Toggle Type -->
+            <div class="flex flex-wrap gap-4">
+                <div class="flex p-1 bg-slate-100 rounded-xl">
+                    <button type="button" (click)="investForm.patchValue({type: 'SIP'})"
+                        [class]="investForm.get('type')?.value === 'SIP' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'"
+                        class="px-4 py-1.5 text-sm font-bold rounded-lg transition-all">SIP</button>
+                    <button type="button" (click)="investForm.patchValue({type: 'Lumpsum'})"
+                        [class]="investForm.get('type')?.value === 'Lumpsum' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'"
+                        class="px-4 py-1.5 text-sm font-bold rounded-lg transition-all">Lumpsum</button>
+                </div>
+
+                <div *ngIf="investForm.get('type')?.value === 'Lumpsum' && !editingId()"
+                    class="flex items-center gap-3 ml-4">
+                    <label class="text-sm font-medium text-slate-600">New Fund?</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" formControlName="isNewFund" class="sr-only peer">
+                        <div
+                            class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600">
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Fund Selection / Name -->
+                <div
+                    *ngIf="!investForm.get('isNewFund')?.value && investForm.get('type')?.value === 'Lumpsum' && !editingId()">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Target Existing Fund</label>
+                    <select formControlName="existingFundId"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none bg-white">
+                        <option value="">Select a fund...</option>
+                        <option *ngFor="let ei of equityInvestments()" [value]="ei.id">{{ ei.name }}</option>
+                    </select>
+                </div>
+
+                <div *ngIf="investForm.get('isNewFund')?.value || editingId()">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fund Name</label>
+                    <input type="text" formControlName="name" placeholder="e.g. Mirae Asset Large Cap"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">
+                        {{ investForm.get('type')?.value === 'SIP' ? 'Monthly Amount' : 'Investment Amount' }}
+                    </label>
+                    <input type="number" formControlName="amount"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none">
+                </div>
+
+                <div *ngIf="investForm.get('isNewFund')?.value || editingId()">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Total Invested till
+                        date</label>
+                    <input type="number" formControlName="totalInvested"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none">
+                </div>
+
+                <div *ngIf="investForm.get('isNewFund')?.value || editingId()">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Current Value
+                        (Optional)</label>
+                    <input type="number" formControlName="currentValue"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">
+                        {{ investForm.get('type')?.value === 'SIP' ? 'Start Date' : 'Investment Date' }}
+                    </label>
+                    <input type="date" formControlName="startDate"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none">
+                </div>
+
+                <ng-container *ngIf="investForm.get('type')?.value === 'SIP'">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Next Due Date</label>
+                        <input type="date" formControlName="nextDueDate"
+                            class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Frequency</label>
+                        <select formControlName="frequency"
+                            class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none bg-white">
+                            <option value="Monthly">Monthly</option>
+                            <option value="Quarterly">Quarterly</option>
+                            <option value="Yearly">Yearly</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">SIP Status</label>
+                        <select formControlName="status"
+                            class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none bg-white">
+                            <option value="Active">Active</option>
+                            <option value="Paused">Paused</option>
+                            <option value="Failed">Failed</option>
+                        </select>
+                    </div>
+                </ng-container>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-6 border-t border-slate-100">
+                <button type="button" (click)="toggleForm()"
+                    class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
+                <button type="submit"
+                    class="px-5 py-2.5 text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition-all">
+                    {{ editingId() ? 'Update Investment' : 'Save Investment' }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Active Investments Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div *ngFor="let ei of equityInvestments()"
+            class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-all relative overflow-hidden group">
+
+            <!-- Type Badge -->
+            <div class="absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest"
+                [ngClass]="ei.type === 'SIP' ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'">
+                {{ ei.type }}
+            </div>
+
+            <div class="flex items-start justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 pr-12 line-clamp-1">{{ ei.name }}</h3>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span
+                                class="text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-100 text-slate-400">{{
+                                ei.status }}</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Start: {{
+                                ei.startDate | date:'MMM yyyy' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button (click)="startEdit(ei)" class="p-1.5 text-slate-300 hover:text-brand-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </button>
+                    <button (click)="deleteInvestment(ei)"
+                        class="p-1.5 text-slate-300 hover:text-danger-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-1">Total
+                        Invested</label>
+                    <div class="text-xl font-black text-slate-900">{{ ei.principal | currency:'INR':'symbol':'1.0-0' }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-1">CAGR</label>
+                    <div class="text-xl font-black text-brand-600">{{ calculateCAGR(ei) }}</div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 rounded-2xl flex items-center justify-between mb-6">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Current Value</label>
+                    <div class="text-md font-bold text-slate-800">{{ ei.currentValue | currency:'INR':'symbol':'1.0-0'
+                        }}</div>
+                </div>
+                <div class="text-right">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Return</label>
+                    <div class="text-md font-bold"
+                        [ngClass]="ei.currentValue >= ei.principal ? 'text-brand-600' : 'text-danger-600'">
+                        {{ ei.currentValue >= ei.principal ? '+' : '' }}{{ ((ei.currentValue - ei.principal) /
+                        ei.principal * 100) | number:'1.1-1' }}%
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <button (click)="toggleHistory(ei.id)"
+                    class="text-xs font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1.5 group/btn">
+                    <svg class="w-4 h-4 transition-transform" [ngClass]="showHistoryId() === ei.id ? 'rotate-180' : ''"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    See History (Last 10)
+                </button>
+
+                <div *ngIf="ei.type === 'SIP'" class="flex items-center gap-2 text-slate-500">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-[10px] font-bold">Next: {{ ei.nextDueDate | date:'MMM dd' }}</span>
+                </div>
+            </div>
+
+            <!-- Transaction Ledger -->
+            <div *ngIf="showHistoryId() === ei.id"
+                class="mt-6 pt-6 border-t border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+                <div class="space-y-3">
+                    <div *ngFor="let tx of getTransactions(ei)" class="flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center font-bold text-[10px]"
+                                [ngClass]="tx.type === 'SIP' ? 'text-blue-600' : 'text-emerald-600'">
+                                {{ tx.type === 'SIP' ? 'SIP' : 'LUM' }}
+                            </span>
+                            <div>
+                                <div class="font-bold text-slate-800">{{ tx.date | date:'mediumDate' }}</div>
+                                <div class="text-slate-400 text-[10px]">{{ tx.type }} transaction</div>
+                            </div>
+                        </div>
+                        <div class="font-black text-slate-900">+{{ tx.amount | currency:'INR':'symbol':'1.0-0' }}</div>
+                    </div>
+                    <div *ngIf="!ei.transactions?.length" class="text-center py-4 text-slate-400 italic text-xs">
+                        No transactions found.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
