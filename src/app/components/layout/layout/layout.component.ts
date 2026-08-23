@@ -1,11 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ToastContainerComponent } from '../../../components/shared/toast-container.component';
+import { LoadingSpinnerComponent } from '../../../components/shared/loading-spinner.component';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, ToastContainerComponent, LoadingSpinnerComponent],
   template: `
     <div class="flex h-screen bg-slate-50 font-sans text-slate-800">
       
@@ -67,9 +69,13 @@ import { CommonModule } from '@angular/common';
         </nav>
       </aside>
 
+      <!-- Global Toast and Loading -->
+      <app-toast-container></app-toast-container>
+      <app-loading-spinner></app-loading-spinner>
+
       <!-- Main Content Container -->
       <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-        
+
         <!-- Mobile Header Bar -->
         <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 lg:hidden">
            <div class="flex items-center gap-2 text-brand-600">

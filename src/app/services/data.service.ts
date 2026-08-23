@@ -1,6 +1,6 @@
 import { Injectable, signal, effect, PLATFORM_ID, inject, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Observable, of } from 'rxjs';
+import { Observable, of, tap, catchError } from 'rxjs';
 import {
   AssetDto,
   LiabilityDto,
@@ -12,6 +12,8 @@ import {
   TargetAllocationDto,
   CurrentAllocationDto
 } from '../models/master-data';
+import { ApiService } from './api.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -19,6 +21,8 @@ import {
 export class DataService {
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
+  private api = inject(ApiService);
+  private useApi = environment.apiUrl && environment.apiUrl !== 'http://localhost:8000/api/v1' ? false : true;
 
   private readonly KEYS = {
     ASSETS: 'wealth_assets',
@@ -47,31 +51,52 @@ export class DataService {
     this.recalculatePortfolio();
   }
 
-  // Aggregate snapshot of all application state for export
-  exportData() {
-    return {
-      exportedAt: new Date().toISOString(),
-      version: 1,
-      portfolio: this.portfolioState(),
-      assets: this.assetsState(),
-      liabilities: this.liabilitiesState(),
-      equityInvestments: this.equityInvestmentsState(),
-      maturities: this.maturitiesState()
-    };
-  }
-
   private load(key: string): any {
     if (!this.isBrowser) return null;
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : null;
   }
 
-  // API placeholders
-  getPortfolio(): Observable<PortfolioDto> { return of(this.portfolioState()); }
-  getAssets(): Observable<AssetDto[]> { return of(this.assetsState()); }
-  getLiabilities(): Observable<LiabilityDto[]> { return of(this.liabilitiesState()); }
-  getEquityInvestments(): Observable<EquityInvestmentDto[]> { return of(this.equityInvestmentsState()); }
-  getUpcomingMaturities(): Observable<UpcomingMaturityDto[]> { return of(this.maturitiesState()); }
+  // API Methods (with LocalStorage fallback)
+  getPortfolio(): Observable<PortfolioDto> {
+    return this.useApi
+      ? this.api.get<PortfolioDto>('/portfolio')
+          .pipe(tap(data => this.portfolioState.set(data)),
+                catchError(() => of(this.portfolioState())))
+      : of(this.portfolioState());
+  }
+
+  getAssets(): Observable<AssetDto[]> {
+    return this.useApi
+      ? this.api.get<AssetDto[]>('/assets')
+          .pipe(tap(data => this.assetsState.set(data)),
+                catchError(() => of(this.assetsState())))
+      : of(this.assetsState());
+  }
+
+  getLiabilities(): Observable<LiabilityDto[]> {
+    return this.useApi
+      ? this.api.get<LiabilityDto[]>('/liabilities')
+          .pipe(tap(data => this.liabilitiesState.set(data)),
+                catchError(() => of(this.liabilitiesState())))
+      : of(this.liabilitiesState());
+  }
+
+  getEquityInvestments(): Observable<EquityInvestmentDto[]> {
+    return this.useApi
+      ? this.api.get<EquityInvestmentDto[]>('/investments')
+          .pipe(tap(data => this.equityInvestmentsState.set(data)),
+                catchError(() => of(this.equityInvestmentsState())))
+      : of(this.equityInvestmentsState());
+  }
+
+  getUpcomingMaturities(): Observable<UpcomingMaturityDto[]> {
+    return this.useApi
+      ? this.api.get<UpcomingMaturityDto[]>('/maturities')
+          .pipe(tap(data => this.maturitiesState.set(data)),
+                catchError(() => of(this.maturitiesState())))
+      : of(this.maturitiesState());
+  }
 
   // Merged assets for Portfolio Manager view
   allAssets = computed(() => {
@@ -192,6 +217,30 @@ export class DataService {
   deleteEquityInvestment(id: number) {
     this.equityInvestmentsState.update(eis => eis.filter(s => s.id !== id));
     this.recalculatePortfolio();
+  }
+
+  // Export and Import
+  exportData(): Observable<any> {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      version: 1,
+      portfolio: this.portfolioState(),
+      assets: this.assetsState(),
+      liabilities: this.liabilitiesState(),
+      equityInvestments: this.equityInvestmentsState(),
+      maturities: this.maturitiesState()
+    };
+    return of(data);
+  }
+
+  importData(data: any): Observable<any> {
+    if (data.portfolio) this.portfolioState.set(data.portfolio);
+    if (data.assets) this.assetsState.set(data.assets);
+    if (data.liabilities) this.liabilitiesState.set(data.liabilities);
+    if (data.equityInvestments) this.equityInvestmentsState.set(data.equityInvestments);
+    if (data.maturities) this.maturitiesState.set(data.maturities);
+    this.recalculatePortfolio();
+    return of({ success: true });
   }
 
   private recalculatePortfolio() {

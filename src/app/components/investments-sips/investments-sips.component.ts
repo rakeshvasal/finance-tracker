@@ -2,20 +2,27 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DataService } from '../../services/data.service';
+import { MarketDataService } from '../../services/market-data.service';
+import { ToastService } from '../../services/toast.service';
 import { differenceInDays, parseISO, addMonths, addQuarters, addYears } from 'date-fns';
 import { EquityInvestmentDto, TransactionDto } from '../../models/master-data';
+import { AutocompleteComponent, AutocompleteItem } from '../shared/autocomplete.component';
 
 @Component({
   selector: 'app-investments-sips',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, DecimalPipe, ReactiveFormsModule],
+  imports: [CommonModule, CurrencyPipe, DatePipe, DecimalPipe, ReactiveFormsModule, AutocompleteComponent],
   templateUrl: './investments-sips.component.html',
   styles: []
 })
 export class InvestmentsSipsComponent {
   private fb = inject(FormBuilder);
   private dataService = inject(DataService);
+  private marketDataService = inject(MarketDataService);
+  private toastService = inject(ToastService);
   equityInvestments = this.dataService.equityInvestmentsState;
+
+  stockSearchResults = signal<AutocompleteItem[]>([]);
 
   showForm = signal<boolean>(false);
   editingId = signal<number | null>(null);
@@ -234,5 +241,36 @@ export class InvestmentsSipsComponent {
     return (ei.transactions || []).slice(0, 10).sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
+  }
+
+  searchStocks(query: string): void {
+    if (query.length < 2) {
+      this.stockSearchResults.set([]);
+      return;
+    }
+
+    this.marketDataService.searchAll(query).subscribe({
+      next: (results) => {
+        const items: AutocompleteItem[] = results.map(r => ({
+          label: `${r.name} (${r.type})`,
+          value: r,
+          metadata: r.type === 'Stock' ? r.exchange : r.schemeCode
+        }));
+        this.stockSearchResults.set(items);
+      },
+      error: (err) => {
+        console.error('Search failed:', err);
+        this.toastService.showError('Failed to search stocks');
+      }
+    });
+  }
+
+  selectStock(item: AutocompleteItem): void {
+    const stock = item.value;
+    this.investForm.patchValue({
+      name: stock.name,
+      type: stock.type === 'Stock' ? 'Stock' : 'Lumpsum'
+    });
+    this.stockSearchResults.set([]);
   }
 }

@@ -2,6 +2,7 @@ import { Component, inject, computed, PLATFORM_ID } from '@angular/core';
 import { CommonModule, CurrencyPipe, isPlatformBrowser } from '@angular/common';
 import { FinancialHealthService } from '../../services/financial-health.service';
 import { DataService } from '../../services/data.service';
+import { ToastService } from '../../services/toast.service';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 
 @Component({
@@ -15,6 +16,7 @@ import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 export class DashboardComponent {
   healthService = inject(FinancialHealthService);
   private dataService = inject(DataService);
+  private toastService = inject(ToastService);
   private platformId = inject(PLATFORM_ID);
 
   netWorth = this.healthService.totalNetWorth;
@@ -124,16 +126,24 @@ export class DashboardComponent {
   exportData() {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    const data = this.dataService.exportData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    this.dataService.exportData().subscribe({
+      next: (data: any) => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
 
-    const stamp = new Date().toISOString().slice(0, 10);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `finance-tracker-export-${stamp}.json`;
-    link.click();
+        const stamp = new Date().toISOString().slice(0, 10);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `finance-tracker-export-${stamp}.json`;
+        link.click();
 
-    URL.revokeObjectURL(url);
+        URL.revokeObjectURL(url);
+        this.toastService.showSuccess('Data exported successfully');
+      },
+      error: (err: any) => {
+        console.error('Export failed:', err);
+        this.toastService.showError('Failed to export data');
+      }
+    });
   }
 }

@@ -2,6 +2,8 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { DataService } from '../../services/data.service';
+import { MarketDataService } from '../../services/market-data.service';
+import { ToastService } from '../../services/toast.service';
 import { AssetDto, LiabilityDto } from '../../models/master-data';
 
 @Component({
@@ -14,6 +16,8 @@ import { AssetDto, LiabilityDto } from '../../models/master-data';
 export class PortfolioManagerComponent {
   private fb = inject(FormBuilder);
   private dataService = inject(DataService);
+  private marketDataService = inject(MarketDataService);
+  private toastService = inject(ToastService);
 
   assets = this.dataService.allAssets;
   liabilities = this.dataService.liabilitiesState;
@@ -216,5 +220,19 @@ export class PortfolioManagerComponent {
     const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) /
                 (Math.pow(1 + monthlyRate, months) - 1);
     return Math.round(emi);
+  }
+
+  refreshPrices() {
+    this.marketDataService.refreshAllPrices('default-portfolio').subscribe({
+      next: () => {
+        this.dataService.getAssets().subscribe();
+        this.dataService.getEquityInvestments().subscribe();
+        this.toastService.showSuccess('Prices refreshed successfully');
+      },
+      error: (err) => {
+        console.error('Refresh failed:', err);
+        this.toastService.showError('Failed to refresh prices');
+      }
+    });
   }
 }

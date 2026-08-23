@@ -51,6 +51,11 @@ export interface EquityInvestmentDto {
     units?: number;
     buyPrice?: number;
     currentUnitPrice?: number;
+    // Backend-calculated fields
+    cagr?: number;
+    absoluteReturns?: number;
+    xirr?: number;
+    sipAge?: string;
 }
 
 export interface AssetDto {
