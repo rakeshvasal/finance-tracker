@@ -38,7 +38,7 @@ export interface EquityInvestmentDto {
     id: number;
     portfolioId: string;
     name: string;
-    type: 'SIP' | 'Lumpsum';
+    type: 'SIP' | 'Lumpsum' | 'Stock';
     amount: number;
     principal: number;
     currentValue: number;
@@ -47,6 +47,10 @@ export interface EquityInvestmentDto {
     frequency?: 'Monthly' | 'Quarterly' | 'Yearly';
     status: 'Active' | 'Failed' | 'Paused';
     transactions: TransactionDto[];
+    // Stock-specific fields
+    units?: number;
+    buyPrice?: number;
+    currentUnitPrice?: number;
 }
 
 export interface AssetDto {
@@ -60,18 +64,19 @@ export interface AssetDto {
     maturityDate?: string;
     portfolioId: string;
     returns: string;
-
+    payoutCycle?: string;
 }
 
 export interface LiabilityDto {
     id: number;
     name: string;
-    category: 'Loan';
+    category: 'Current' | 'Long-term' | 'Conditional' | 'Loan';
     principal: number;
     currentValue: number;
     investmentStartDate: string;
     ROI: number;
     portfolioId: string;
+    remainingMonths?: number;
 }
 
 export interface UpcomingMaturityDto {

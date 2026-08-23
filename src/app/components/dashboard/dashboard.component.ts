@@ -1,6 +1,7 @@
-import { Component, inject, computed } from '@angular/core';
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { Component, inject, computed, PLATFORM_ID } from '@angular/core';
+import { CommonModule, CurrencyPipe, isPlatformBrowser } from '@angular/common';
 import { FinancialHealthService } from '../../services/financial-health.service';
+import { DataService } from '../../services/data.service';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 
 @Component({
@@ -13,6 +14,8 @@ import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 })
 export class DashboardComponent {
   healthService = inject(FinancialHealthService);
+  private dataService = inject(DataService);
+  private platformId = inject(PLATFORM_ID);
 
   netWorth = this.healthService.totalNetWorth;
   assets = this.healthService.totalAssets;
@@ -117,4 +120,20 @@ export class DashboardComponent {
   });
 
   constructor() { }
+
+  exportData() {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const data = this.dataService.exportData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `finance-tracker-export-${stamp}.json`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+  }
 }

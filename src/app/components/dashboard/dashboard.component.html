@@ -1,10 +1,20 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-slate-800">Financial Overview</h1>
-        <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-slate-500">Health Score</span>
-            <div class="px-3 py-1 bg-brand-50 text-brand-700 font-bold rounded-full border border-brand-200 shadow-sm">
-                {{ healthScore() }} / 100
+        <div class="flex items-center gap-4">
+            <button type="button" (click)="exportData()"
+                class="flex items-center gap-2 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export Data
+            </button>
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-slate-500">Health Score</span>
+                <div class="px-3 py-1 bg-brand-50 text-brand-700 font-bold rounded-full border border-brand-200 shadow-sm">
+                    {{ healthScore() }} / 100
+                </div>
             </div>
         </div>
     </div>

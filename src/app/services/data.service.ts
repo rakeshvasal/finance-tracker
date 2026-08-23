@@ -47,6 +47,19 @@ export class DataService {
     this.recalculatePortfolio();
   }
 
+  // Aggregate snapshot of all application state for export
+  exportData() {
+    return {
+      exportedAt: new Date().toISOString(),
+      version: 1,
+      portfolio: this.portfolioState(),
+      assets: this.assetsState(),
+      liabilities: this.liabilitiesState(),
+      equityInvestments: this.equityInvestmentsState(),
+      maturities: this.maturitiesState()
+    };
+  }
+
   private load(key: string): any {
     if (!this.isBrowser) return null;
     const data = localStorage.getItem(key);
@@ -69,7 +82,9 @@ export class DataService {
       category: 'Equity',
       principal: ei.principal,
       currentValue: ei.currentValue,
-      investmentDate: ei.startDate
+      investmentStartDate: ei.startDate,
+      portfolioId:ei.portfolioId,
+      returns:''
     }));
     return [...manualAssets, ...equityAssets];
   });
