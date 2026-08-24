@@ -1,8 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ToastContainerComponent } from '../../../components/shared/toast-container.component';
 import { LoadingSpinnerComponent } from '../../../components/shared/loading-spinner.component';
+import { DataService } from '../../../services/data.service';
 
 @Component({
   selector: 'app-layout',
@@ -104,7 +105,9 @@ import { LoadingSpinnerComponent } from '../../../components/shared/loading-spin
   styles: []
 })
 export class LayoutComponent {
+  private dataService = inject(DataService);
   isMobileMenuOpen = signal(false);
+
   toggleMobileMenu() { this.isMobileMenuOpen.update(v => !v); }
   closeOnMobile() { if (this.isMobileMenuOpen()) { this.isMobileMenuOpen.set(false); } }
 }

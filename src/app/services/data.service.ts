@@ -1,5 +1,4 @@
-import { Injectable, signal, effect, PLATFORM_ID, inject, computed } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { Injectable, signal, inject, computed } from '@angular/core';
 import { Observable, of, tap, catchError } from 'rxjs';
 import {
   AssetDto,
@@ -7,95 +6,85 @@ import {
   PortfolioDto,
   EquityInvestmentDto,
   TransactionDto,
-  UpcomingMaturityDto,
-  HistoricalNetWorthDto,
-  TargetAllocationDto,
-  CurrentAllocationDto
+  UpcomingMaturityDto
 } from '../models/master-data';
 import { ApiService } from './api.service';
-import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DataService {
-  private platformId = inject(PLATFORM_ID);
-  private isBrowser = isPlatformBrowser(this.platformId);
   private api = inject(ApiService);
-  private useApi = environment.apiUrl && environment.apiUrl !== 'http://localhost:8000/api/v1' ? false : true;
 
-  private readonly KEYS = {
-    ASSETS: 'wealth_assets',
-    LIABILITIES: 'wealth_liabilities',
-    EQUITY: 'wealth_equity',
-    PORTFOLIO: 'wealth_portfolio'
-  };
-
-  // Signals for state
-  portfolioState = signal<PortfolioDto>(this.load(this.KEYS.PORTFOLIO) || this.getEmptyPortfolio());
-  assetsState = signal<AssetDto[]>(this.load(this.KEYS.ASSETS) || []);
-  liabilitiesState = signal<LiabilityDto[]>(this.load(this.KEYS.LIABILITIES) || []);
-  equityInvestmentsState = signal<EquityInvestmentDto[]>(this.load(this.KEYS.EQUITY) || []);
+  portfolioState = signal<PortfolioDto>(this.getEmptyPortfolio());
+  assetsState = signal<AssetDto[]>([]);
+  liabilitiesState = signal<LiabilityDto[]>([]);
+  equityInvestmentsState = signal<EquityInvestmentDto[]>([]);
   maturitiesState = signal<UpcomingMaturityDto[]>([]);
+  isInitialized = signal(false);
 
   constructor() {
-    // Persistence Effects
-    if (this.isBrowser) {
-      effect(() => localStorage.setItem(this.KEYS.ASSETS, JSON.stringify(this.assetsState())));
-      effect(() => localStorage.setItem(this.KEYS.LIABILITIES, JSON.stringify(this.liabilitiesState())));
-      effect(() => localStorage.setItem(this.KEYS.EQUITY, JSON.stringify(this.equityInvestmentsState())));
-      effect(() => localStorage.setItem(this.KEYS.PORTFOLIO, JSON.stringify(this.portfolioState())));
-    }
-
-    // Initial cleanup of legacy/mock data
-    this.recalculatePortfolio();
+    this.initializeData();
   }
 
-  private load(key: string): any {
-    if (!this.isBrowser) return null;
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+  private initializeData() {
+    Promise.all([
+      this.getPortfolio().toPromise(),
+      this.getAssets().toPromise(),
+      this.getLiabilities().toPromise(),
+      this.getEquityInvestments().toPromise()
+    ]).then(() => {
+      this.isInitialized.set(true);
+    }).catch(err => {
+      console.error('Error initializing data:', err);
+      this.isInitialized.set(true);
+    });
   }
 
-  // API Methods (with LocalStorage fallback)
+  // API Methods - Always fetch from backend API
   getPortfolio(): Observable<PortfolioDto> {
-    return this.useApi
-      ? this.api.get<PortfolioDto>('/portfolio')
-          .pipe(tap(data => this.portfolioState.set(data)),
-                catchError(() => of(this.portfolioState())))
-      : of(this.portfolioState());
+    return this.api.get<PortfolioDto>('/portfolio')
+      .pipe(tap(data => this.portfolioState.set(data)),
+            catchError(err => {
+              console.error('Failed to fetch portfolio', err);
+              return of(this.portfolioState());
+            }));
   }
 
   getAssets(): Observable<AssetDto[]> {
-    return this.useApi
-      ? this.api.get<AssetDto[]>('/assets')
-          .pipe(tap(data => this.assetsState.set(data)),
-                catchError(() => of(this.assetsState())))
-      : of(this.assetsState());
+    return this.api.get<AssetDto[]>('/assets')
+      .pipe(tap(data => this.assetsState.set(data)),
+            catchError(err => {
+              console.error('Failed to fetch assets', err);
+              return of(this.assetsState());
+            }));
   }
 
   getLiabilities(): Observable<LiabilityDto[]> {
-    return this.useApi
-      ? this.api.get<LiabilityDto[]>('/liabilities')
-          .pipe(tap(data => this.liabilitiesState.set(data)),
-                catchError(() => of(this.liabilitiesState())))
-      : of(this.liabilitiesState());
+    return this.api.get<LiabilityDto[]>('/liabilities')
+      .pipe(tap(data => this.liabilitiesState.set(data)),
+            catchError(err => {
+              console.error('Failed to fetch liabilities', err);
+              return of(this.liabilitiesState());
+            }));
   }
 
   getEquityInvestments(): Observable<EquityInvestmentDto[]> {
-    return this.useApi
-      ? this.api.get<EquityInvestmentDto[]>('/investments')
-          .pipe(tap(data => this.equityInvestmentsState.set(data)),
-                catchError(() => of(this.equityInvestmentsState())))
-      : of(this.equityInvestmentsState());
+    return this.api.get<EquityInvestmentDto[]>('/investments')
+      .pipe(tap(data => this.equityInvestmentsState.set(data)),
+            catchError(err => {
+              console.error('Failed to fetch investments', err);
+              return of(this.equityInvestmentsState());
+            }));
   }
 
   getUpcomingMaturities(): Observable<UpcomingMaturityDto[]> {
-    return this.useApi
-      ? this.api.get<UpcomingMaturityDto[]>('/maturities')
-          .pipe(tap(data => this.maturitiesState.set(data)),
-                catchError(() => of(this.maturitiesState())))
-      : of(this.maturitiesState());
+    return this.api.get<UpcomingMaturityDto[]>('/maturities')
+      .pipe(tap(data => this.maturitiesState.set(data)),
+            catchError(err => {
+              console.error('Failed to fetch maturities', err);
+              return of(this.maturitiesState());
+            }));
   }
 
   // Merged assets for Portfolio Manager view
@@ -146,7 +135,6 @@ export class DataService {
         return [...assets, asset];
       });
     }
-    this.recalculatePortfolio();
   }
 
   deleteAsset(id: number, category?: string) {
@@ -155,7 +143,6 @@ export class DataService {
     } else {
       this.assetsState.update(assets => assets.filter(a => a.id !== id));
     }
-    this.recalculatePortfolio();
   }
 
   // --- Liability Methods ---
@@ -172,12 +159,10 @@ export class DataService {
       }
       return [...libs, liability];
     });
-    this.recalculatePortfolio();
   }
 
   deleteLiability(id: number) {
     this.liabilitiesState.update(libs => libs.filter(l => l.id !== id));
-    this.recalculatePortfolio();
   }
 
   // --- Equity Investment Methods ---
@@ -191,7 +176,6 @@ export class DataService {
       }
       return [...eis, ei];
     });
-    this.recalculatePortfolio();
   }
 
   addTransaction(eiId: number, transaction: Omit<TransactionDto, 'id'>) {
@@ -211,12 +195,10 @@ export class DataService {
       }
       return eis;
     });
-    this.recalculatePortfolio();
   }
 
   deleteEquityInvestment(id: number) {
     this.equityInvestmentsState.update(eis => eis.filter(s => s.id !== id));
-    this.recalculatePortfolio();
   }
 
   // Export and Import
@@ -239,64 +221,9 @@ export class DataService {
     if (data.liabilities) this.liabilitiesState.set(data.liabilities);
     if (data.equityInvestments) this.equityInvestmentsState.set(data.equityInvestments);
     if (data.maturities) this.maturitiesState.set(data.maturities);
-    this.recalculatePortfolio();
     return of({ success: true });
   }
 
-  private recalculatePortfolio() {
-    const manualA = this.assetsState().reduce((sum, a) => sum + a.currentValue, 0);
-    const equityA = this.equityInvestmentsState().reduce((sum, ei) => sum + ei.currentValue, 0);
-    const totalA = manualA + equityA;
-    const totalL = this.liabilitiesState().reduce((sum, l) => sum + l.currentValue, 0);
-    const net = totalA - totalL;
-
-    const cats: Record<string, number> = { Equity: 0, Debt: 0, Gold: 0, Cash: 0 };
-    this.assetsState().forEach(a => {
-      const c = (a.category === 'FD' || a.category === 'Bond') ? 'Debt' :
-        (a.category === 'Gold') ? 'Gold' : 'Cash';
-      cats[c] = (cats[c] || 0) + a.currentValue;
-    });
-    this.equityInvestmentsState().forEach(ei => {
-      cats['Equity'] += ei.currentValue;
-    });
-
-    const total = Object.values(cats).reduce((a, b) => a + b, 0) || 1;
-    const currentAllocation: CurrentAllocationDto = {
-      Equity: Math.round((cats['Equity'] / total) * 100),
-      Debt: Math.round((cats['Debt'] / total) * 100),
-      Gold: Math.round((cats['Gold'] / total) * 100),
-      Cash: Math.round((cats['Cash'] / total) * 100)
-    };
-
-    const currentMonth = new Date().toLocaleString('default', { month: 'short' });
-
-    this.portfolioState.update(p => {
-      // Clean up legacy mock data if it exists
-      let history = p.historicalNetWorth.filter(h =>
-        !['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-          .includes(h.month) || h.value === net // Keep if it was updated with current net
-      );
-
-      const monthIndex = history.findIndex(h => h.month === currentMonth);
-
-      if (monthIndex > -1) {
-        history[monthIndex] = { ...history[monthIndex], value: net };
-      } else {
-        history.push({ month: currentMonth, value: net });
-        // Keep only last 12 months
-        if (history.length > 12) history.shift();
-      }
-
-      return {
-        ...p,
-        totalAssets: totalA,
-        totalLiabilities: totalL,
-        totalNetWorth: net,
-        currentAllocation,
-        historicalNetWorth: history
-      };
-    });
-  }
 
   private getEmptyPortfolio(): PortfolioDto {
     return {

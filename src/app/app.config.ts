@@ -5,6 +5,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { loadingInterceptor } from './interceptors/loading.interceptor';
+import { DataService } from './services/data.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,6 +16,7 @@ export const appConfig: ApplicationConfig = {
         errorInterceptor,
         loadingInterceptor
       ])
-    )
+    ),
+    DataService
   ]
 };
