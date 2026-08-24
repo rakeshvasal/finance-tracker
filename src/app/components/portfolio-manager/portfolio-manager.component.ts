@@ -24,6 +24,8 @@ export class PortfolioManagerComponent {
 
   showForm = signal<boolean>(false);
   editingId = signal<number | null>(null);
+  isSubmitting = signal<boolean>(false);
+  isRecalculating = signal<boolean>(false);
 
   assetForm: FormGroup;
 
@@ -134,18 +136,38 @@ export class PortfolioManagerComponent {
 
   deleteItem(item: any) {
     if (confirm(`Are you sure you want to delete ${item.name}?`)) {
-      if (item.category === 'Loan' || item.category === 'Current' || item.category === 'Long-term' || item.category === 'Conditional') {
-        this.dataService.deleteLiability(item.id);
+      const isLiability = item.category === 'Loan' || item.category === 'Current' || item.category === 'Long-term' || item.category === 'Conditional';
+
+      if (isLiability) {
+        this.dataService.deleteLiability(item.id).subscribe({
+          next: () => {
+            this.toastService.showSuccess(`${item.name} deleted successfully`);
+          },
+          error: (err: any) => {
+            console.error('Delete failed:', err);
+            this.toastService.showError(`Failed to delete ${item.name}`);
+          }
+        });
       } else {
-        this.dataService.deleteAsset(item.id, item.category);
+        this.dataService.deleteAsset(item.id, item.category).subscribe({
+          next: () => {
+            this.toastService.showSuccess(`${item.name} deleted successfully`);
+          },
+          error: (err: any) => {
+            console.error('Delete failed:', err);
+            this.toastService.showError(`Failed to delete ${item.name}`);
+          }
+        });
       }
     }
   }
 
   onSubmit() {
     if (this.assetForm.valid) {
+      this.isSubmitting.set(true);
       const formVal = this.assetForm.value;
-      const id = this.editingId() ?? (Math.max(...this.assets().map(a => a.id), ...this.liabilities().map(l => l.id), 0) + 1);
+      const editingId = this.editingId();
+      const id = editingId ?? (Math.max(...this.assets().map(a => a.id), ...this.liabilities().map(l => l.id), 0) + 1);
 
       const basePayload = {
         id,
@@ -153,21 +175,58 @@ export class PortfolioManagerComponent {
         category: formVal.category,
         principal: formVal.principal,
         currentValue: formVal.currentValue || formVal.principal,
+        investmentStartDate: new Date(formVal.investmentDate).toISOString(),
         investmentDate: new Date(formVal.investmentDate).toISOString(),
         interestRate: formVal.interestRate || 0,
+        roi: formVal.interestRate || 0,
         maturityDate: formVal.maturityDate ? new Date(formVal.maturityDate).toISOString() : undefined,
         payoutCycle: formVal.payoutCycle || undefined,
-        remainingMonths: formVal.remainingMonths || undefined
+        remainingMonths: formVal.remainingMonths || undefined,
+        returns: formVal.payoutCycle || 'Annual',
+        portfolioId: 1
       };
 
       if (this.entryType() === 'Liability') {
-        this.dataService.upsertLiability(basePayload as unknown as LiabilityDto);
-      } else {
-        this.dataService.upsertAsset(basePayload as unknown as AssetDto);
-      }
+        const liabilityRequest = editingId
+          ? this.dataService.updateLiability(editingId, basePayload as unknown as Partial<LiabilityDto>)
+          : this.dataService.createLiability(basePayload as unknown as LiabilityDto);
 
-      this.cancelEdit();
-      this.showForm.set(false);
+        liabilityRequest.subscribe({
+          next: () => {
+            this.isSubmitting.set(false);
+            this.toastService.showSuccess(
+              `${this.entryType()} ${editingId ? 'updated' : 'created'} successfully`
+            );
+            this.cancelEdit();
+            this.showForm.set(false);
+          },
+          error: (err: any) => {
+            this.isSubmitting.set(false);
+            console.error('Submit failed:', err);
+            this.toastService.showError(`Failed to ${editingId ? 'update' : 'create'} ${this.entryType()}`);
+          }
+        });
+      } else {
+        const assetRequest = editingId
+          ? this.dataService.updateAsset(editingId, basePayload as unknown as Partial<AssetDto>)
+          : this.dataService.createAsset(basePayload as unknown as AssetDto);
+
+        assetRequest.subscribe({
+          next: () => {
+            this.isSubmitting.set(false);
+            this.toastService.showSuccess(
+              `${this.entryType()} ${editingId ? 'updated' : 'created'} successfully`
+            );
+            this.cancelEdit();
+            this.showForm.set(false);
+          },
+          error: (err: any) => {
+            this.isSubmitting.set(false);
+            console.error('Submit failed:', err);
+            this.toastService.showError(`Failed to ${editingId ? 'update' : 'create'} ${this.entryType()}`);
+          }
+        });
+      }
     } else {
       Object.keys(this.assetForm.controls).forEach(key => {
         this.assetForm.get(key)?.markAsTouched();
@@ -223,15 +282,30 @@ export class PortfolioManagerComponent {
   }
 
   refreshPrices() {
-    this.marketDataService.refreshAllPrices('default-portfolio').subscribe({
+    this.marketDataService.refreshAllPrices(1).subscribe({
       next: () => {
         this.dataService.getAssets().subscribe();
         this.dataService.getEquityInvestments().subscribe();
         this.toastService.showSuccess('Prices refreshed successfully');
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Refresh failed:', err);
         this.toastService.showError('Failed to refresh prices');
+      }
+    });
+  }
+
+  recalculatePortfolio() {
+    this.isRecalculating.set(true);
+    this.dataService.recalculatePortfolio().subscribe({
+      next: () => {
+        this.isRecalculating.set(false);
+        this.toastService.showSuccess('Portfolio recalculated successfully');
+      },
+      error: (err: any) => {
+        this.isRecalculating.set(false);
+        console.error('Recalculation failed:', err);
+        this.toastService.showError('Failed to recalculate portfolio');
       }
     });
   }

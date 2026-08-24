@@ -104,6 +104,45 @@ export class DataService {
   });
 
   // --- Asset Methods ---
+  createAsset(asset: AssetDto): Observable<AssetDto> {
+    return this.api.post<AssetDto>('/assets', asset)
+      .pipe(
+        tap(created => this.upsertAsset(created)),
+        catchError(err => {
+          console.error('Failed to create asset', err);
+          throw err;
+        })
+      );
+  }
+
+  updateAsset(id: number, asset: Partial<AssetDto>): Observable<AssetDto> {
+    return this.api.put<AssetDto>(`/assets/${id}`, asset)
+      .pipe(
+        tap(updated => this.upsertAsset(updated)),
+        catchError(err => {
+          console.error('Failed to update asset', err);
+          throw err;
+        })
+      );
+  }
+
+  deleteAsset(id: number, category?: string): Observable<void> {
+    return this.api.delete<void>(`/assets/${id}`)
+      .pipe(
+        tap(() => {
+          if (category === 'Equity') {
+            this.deleteEquityInvestmentLocal(id);
+          } else {
+            this.assetsState.update(assets => assets.filter(a => a.id !== id));
+          }
+        }),
+        catchError(err => {
+          console.error('Failed to delete asset', err);
+          throw err;
+        })
+      );
+  }
+
   upsertAsset(asset: AssetDto) {
     this.liabilitiesState.update(libs => libs.filter(l => l.id !== asset.id));
 
@@ -137,15 +176,40 @@ export class DataService {
     }
   }
 
-  deleteAsset(id: number, category?: string) {
-    if (category === 'Equity') {
-      this.deleteEquityInvestment(id);
-    } else {
-      this.assetsState.update(assets => assets.filter(a => a.id !== id));
-    }
+  // --- Liability Methods ---
+  createLiability(liability: LiabilityDto): Observable<LiabilityDto> {
+    return this.api.post<LiabilityDto>('/liabilities', liability)
+      .pipe(
+        tap(created => this.upsertLiability(created)),
+        catchError(err => {
+          console.error('Failed to create liability', err);
+          throw err;
+        })
+      );
   }
 
-  // --- Liability Methods ---
+  updateLiability(id: number, liability: Partial<LiabilityDto>): Observable<LiabilityDto> {
+    return this.api.put<LiabilityDto>(`/liabilities/${id}`, liability)
+      .pipe(
+        tap(updated => this.upsertLiability(updated)),
+        catchError(err => {
+          console.error('Failed to update liability', err);
+          throw err;
+        })
+      );
+  }
+
+  deleteLiability(id: number): Observable<void> {
+    return this.api.delete<void>(`/liabilities/${id}`)
+      .pipe(
+        tap(() => this.liabilitiesState.update(libs => libs.filter(l => l.id !== id))),
+        catchError(err => {
+          console.error('Failed to delete liability', err);
+          throw err;
+        })
+      );
+  }
+
   upsertLiability(liability: LiabilityDto) {
     this.assetsState.update(assets => assets.filter(a => a.id !== liability.id));
     this.equityInvestmentsState.update(eis => eis.filter(ei => ei.id !== liability.id));
@@ -161,11 +225,40 @@ export class DataService {
     });
   }
 
-  deleteLiability(id: number) {
-    this.liabilitiesState.update(libs => libs.filter(l => l.id !== id));
+  // --- Equity Investment Methods ---
+  createEquityInvestment(ei: EquityInvestmentDto): Observable<EquityInvestmentDto> {
+    return this.api.post<EquityInvestmentDto>('/investments', ei)
+      .pipe(
+        tap(created => this.upsertEquityInvestment(created)),
+        catchError(err => {
+          console.error('Failed to create investment', err);
+          throw err;
+        })
+      );
   }
 
-  // --- Equity Investment Methods ---
+  updateEquityInvestment(id: number, ei: Partial<EquityInvestmentDto>): Observable<EquityInvestmentDto> {
+    return this.api.put<EquityInvestmentDto>(`/investments/${id}`, ei)
+      .pipe(
+        tap(updated => this.upsertEquityInvestment(updated)),
+        catchError(err => {
+          console.error('Failed to update investment', err);
+          throw err;
+        })
+      );
+  }
+
+  deleteEquityInvestment(id: number): Observable<void> {
+    return this.api.delete<void>(`/investments/${id}`)
+      .pipe(
+        tap(() => this.deleteEquityInvestmentLocal(id)),
+        catchError(err => {
+          console.error('Failed to delete investment', err);
+          throw err;
+        })
+      );
+  }
+
   upsertEquityInvestment(ei: EquityInvestmentDto) {
     this.equityInvestmentsState.update(eis => {
       const index = eis.findIndex(s => s.id === ei.id);
@@ -178,6 +271,10 @@ export class DataService {
     });
   }
 
+  private deleteEquityInvestmentLocal(id: number) {
+    this.equityInvestmentsState.update(eis => eis.filter(s => s.id !== id));
+  }
+
   addTransaction(eiId: number, transaction: Omit<TransactionDto, 'id'>) {
     this.equityInvestmentsState.update(eis => {
       const index = eis.findIndex(ei => ei.id === eiId);
@@ -186,7 +283,7 @@ export class DataService {
         const ei = { ...updated[index] };
         const newTransaction: TransactionDto = {
           ...transaction,
-          id: Math.random().toString(36).substr(2, 9)
+          id: Math.floor(Math.random() * 1000000)
         };
         ei.transactions = [newTransaction, ...ei.transactions];
         ei.principal += transaction.amount;
@@ -197,8 +294,16 @@ export class DataService {
     });
   }
 
-  deleteEquityInvestment(id: number) {
-    this.equityInvestmentsState.update(eis => eis.filter(s => s.id !== id));
+  // --- Portfolio Methods ---
+  recalculatePortfolio(): Observable<PortfolioDto> {
+    return this.api.post<PortfolioDto>('/portfolio/recalculate', {})
+      .pipe(
+        tap(updated => this.portfolioState.set(updated)),
+        catchError(err => {
+          console.error('Failed to recalculate portfolio', err);
+          throw err;
+        })
+      );
   }
 
   // Export and Import
@@ -227,11 +332,12 @@ export class DataService {
 
   private getEmptyPortfolio(): PortfolioDto {
     return {
+      id: 1,
       totalNetWorth: 0,
       totalAssets: 0,
       totalLiabilities: 0,
       financialHealthScore: 0,
-      historicalNetWorth: [], // Should be empty
+      historicalNetWorth: [],
       targetAllocation: { Equity: 50, Debt: 30, Gold: 10, Cash: 10 },
       currentAllocation: { Equity: 0, Debt: 0, Gold: 0, Cash: 0 }
     };

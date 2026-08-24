@@ -4,16 +4,28 @@
             <h1 class="text-2xl font-bold text-slate-800">Portfolio Manager</h1>
             <p class="text-sm text-slate-500 mt-1">Manage your assets, investments, and liabilities.</p>
         </div>
-        <button (click)="toggleForm()"
-            class="bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-xl transition-colors shadow-sm flex items-center gap-2">
-            <svg *ngIf="!showForm()" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            <svg *ngIf="showForm()" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            {{ showForm() ? 'Cancel' : 'Add New Entry' }}
-        </button>
+        <div class="flex items-center gap-2">
+            <button (click)="recalculatePortfolio()" [disabled]="isRecalculating()"
+                class="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-medium py-2 px-4 rounded-xl transition-colors shadow-sm flex items-center gap-2">
+                <svg *ngIf="!isRecalculating()" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <svg *ngIf="isRecalculating()" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ isRecalculating() ? 'Recalculating...' : 'Recalculate Portfolio' }}
+            </button>
+            <button (click)="toggleForm()"
+                class="bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-xl transition-colors shadow-sm flex items-center gap-2">
+                <svg *ngIf="!showForm()" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <svg *ngIf="showForm()" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                {{ showForm() ? 'Cancel' : 'Add New Entry' }}
+            </button>
+        </div>
     </div>
 
     <div *ngIf="showForm()"
@@ -157,11 +169,14 @@
             </div>
 
             <div class="flex justify-end gap-3 pt-6 border-t border-slate-100">
-                <button type="button" (click)="toggleForm()"
-                    class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
-                <button type="submit"
-                    class="px-5 py-2.5 text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none">
-                    {{ editingId() ? 'Update Entry' : 'Save Entry' }}
+                <button type="button" (click)="toggleForm()" [disabled]="isSubmitting()"
+                    class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:text-slate-400 rounded-xl transition-colors">Cancel</button>
+                <button type="submit" [disabled]="isSubmitting()"
+                    class="px-5 py-2.5 text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 disabled:bg-slate-300 rounded-xl shadow-sm transition-all focus:ring-2 focus:ring-brand-500 outline-none flex items-center gap-2">
+                    <svg *ngIf="isSubmitting()" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {{ isSubmitting() ? (editingId() ? 'Updating...' : 'Saving...') : (editingId() ? 'Update Entry' : 'Save Entry') }}
                 </button>
             </div>
         </form>

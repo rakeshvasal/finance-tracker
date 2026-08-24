@@ -166,10 +166,10 @@ export class InvestmentsSipsComponent {
           nextDueDate: formVal.nextDueDate ? new Date(formVal.nextDueDate).toISOString() : undefined,
           frequency: formVal.frequency,
           status: formVal.status,
-          portfolioId: '',
+          portfolioId: 1,
           transactions: this.editingId() ?
             (existing?.transactions || []) :
-            [{ id: '1', date: new Date(formVal.startDate).toISOString(), amount: formVal.amount, type: formVal.type as 'SIP' | 'Lumpsum' }],
+            [{ id: 1, date: new Date(formVal.startDate).toISOString(), amount: formVal.amount, type: formVal.type as 'SIP' | 'Lumpsum' }],
           units: formVal.type === 'Stock' ? parseFloat(formVal.units) || 0 : undefined,
           buyPrice: formVal.type === 'Stock' ? parseFloat(formVal.buyPrice) || 0 : undefined,
           currentUnitPrice: formVal.type === 'Stock' ? parseFloat(formVal.currentUnitPrice) || 0 : undefined

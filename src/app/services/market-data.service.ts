@@ -52,7 +52,7 @@ export class MarketDataService {
     return this.api.post<MutualFundNAV[]>('/market/batch-mutualfunds', { schemeCodes });
   }
 
-  refreshAllPrices(portfolioId: string): Observable<any> {
+  refreshAllPrices(portfolioId: number): Observable<any> {
     return this.api.post<any>('/market/refresh-prices', { portfolioId });
   }
 

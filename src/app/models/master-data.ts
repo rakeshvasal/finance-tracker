@@ -18,6 +18,7 @@ export interface CurrentAllocationDto {
 }
 
 export interface PortfolioDto {
+    id: number;
     totalNetWorth: number;
     totalAssets: number;
     totalLiabilities: number;
@@ -28,7 +29,7 @@ export interface PortfolioDto {
 }
 
 export interface TransactionDto {
-    id: string;
+    id: number;
     date: string;
     amount: number;
     type: 'SIP' | 'Lumpsum';
@@ -36,7 +37,7 @@ export interface TransactionDto {
 
 export interface EquityInvestmentDto {
     id: number;
-    portfolioId: string;
+    portfolioId: number;
     name: string;
     type: 'SIP' | 'Lumpsum' | 'Stock';
     amount: number;
@@ -67,7 +68,7 @@ export interface AssetDto {
     investmentStartDate: string;
     ROI?: number;
     maturityDate?: string;
-    portfolioId: string;
+    portfolioId: number;
     returns: string;
     payoutCycle?: string;
 }
@@ -80,7 +81,7 @@ export interface LiabilityDto {
     currentValue: number;
     investmentStartDate: string;
     ROI: number;
-    portfolioId: string;
+    portfolioId: number;
     remainingMonths?: number;
 }
 
