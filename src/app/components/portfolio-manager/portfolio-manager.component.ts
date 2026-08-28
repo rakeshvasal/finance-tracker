@@ -43,7 +43,9 @@ export class PortfolioManagerComponent {
       maturityDate: [''],
       payoutCycle: [''],
       remainingPeriod: [''],
-      remainingMonths: ['']
+      remainingMonths: [''],
+      units: ['', [Validators.min(0)]],
+      pricePerUnit: ['', [Validators.min(0)]]
     });
 
     this.assetForm.get('category')?.valueChanges.subscribe(cat => {
@@ -130,8 +132,22 @@ export class PortfolioManagerComponent {
       isSeniorCitizen: item.isSeniorCitizen || false,
       maturityDate: mDate,
       payoutCycle: item.payoutCycle || '',
-      remainingMonths: item.remainingMonths || ''
+      remainingMonths: item.remainingMonths || '',
+      units: item.units || '',
+      pricePerUnit: item.pricePerUnit || ''
     });
+  }
+
+  private formatDateWithoutZ(dateString: string): string {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
   }
 
   deleteItem(item: any) {
@@ -175,11 +191,11 @@ export class PortfolioManagerComponent {
         category: formVal.category,
         principal: formVal.principal,
         currentValue: formVal.currentValue || formVal.principal,
-        investmentStartDate: new Date(formVal.investmentDate).toISOString(),
-        investmentDate: new Date(formVal.investmentDate).toISOString(),
+        investmentStartDate: this.formatDateWithoutZ(formVal.investmentDate),
+        investmentDate: this.formatDateWithoutZ(formVal.investmentDate),
         interestRate: formVal.interestRate || 0,
         roi: formVal.interestRate || 0,
-        maturityDate: formVal.maturityDate ? new Date(formVal.maturityDate).toISOString() : undefined,
+        maturityDate: formVal.maturityDate ? this.formatDateWithoutZ(formVal.maturityDate) : undefined,
         payoutCycle: formVal.payoutCycle || undefined,
         remainingMonths: formVal.remainingMonths || undefined,
         returns: formVal.payoutCycle || 'Annual',

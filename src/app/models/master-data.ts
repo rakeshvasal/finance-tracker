@@ -33,6 +33,8 @@ export interface TransactionDto {
     date: string;
     amount: number;
     type: 'SIP' | 'Lumpsum';
+    units?: number;
+    nav?: number;
 }
 
 export interface EquityInvestmentDto {
@@ -71,6 +73,9 @@ export interface AssetDto {
     portfolioId: number;
     returns: string;
     payoutCycle?: string;
+    // Units field for unit-based assets
+    units?: number;
+    pricePerUnit?: number;
 }
 
 export interface LiabilityDto {

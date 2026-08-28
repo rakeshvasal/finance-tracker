@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { HttpParams } from '@angular/common/http';
+import { WatchlistItem } from '../components/watchlist/watchlist.component';
 
 export interface StockPrice {
   symbol: string;
@@ -69,5 +70,31 @@ export class MarketDataService {
   searchAll(query: string): Observable<SearchResult[]> {
     const params = new HttpParams().set('q', query);
     return this.api.get<SearchResult[]>('/search/all', params);
+  }
+
+  searchByName(query: string): Observable<SearchResult[]> {
+    const params = new HttpParams().set('q', query);
+    return this.api.get<SearchResult[]>('/search/external/by-name', params);
+  }
+
+  getWatchlist(portfolioId: number): Observable<any> {
+    return this.api.get<any>(`/watchlist/${portfolioId}`);
+  }
+
+  addToWatchlist(portfolioId: number, item: WatchlistItem): Observable<any> {
+    return this.api.post<any>(`/watchlist/${portfolioId}`, {
+      portfolioId,
+      symbol: item.symbol,
+      name: item.name,
+      type: item.type,
+      exchange: item.exchange || null,
+      schemeCode: item.schemeCode || null,
+      latestPrice: item.latestPrice || null,
+      schemeName: null
+    });
+  }
+
+  removeFromWatchlist(portfolioId: number, watchlistId: number): Observable<any> {
+    return this.api.delete<any>(`/watchlist/${portfolioId}/${watchlistId}`);
   }
 }

@@ -275,23 +275,15 @@ export class DataService {
     this.equityInvestmentsState.update(eis => eis.filter(s => s.id !== id));
   }
 
-  addTransaction(eiId: number, transaction: Omit<TransactionDto, 'id'>) {
-    this.equityInvestmentsState.update(eis => {
-      const index = eis.findIndex(ei => ei.id === eiId);
-      if (index > -1) {
-        const updated = [...eis];
-        const ei = { ...updated[index] };
-        const newTransaction: TransactionDto = {
-          ...transaction,
-          id: Math.floor(Math.random() * 1000000)
-        };
-        ei.transactions = [newTransaction, ...ei.transactions];
-        ei.principal += transaction.amount;
-        updated[index] = ei;
-        return updated;
-      }
-      return eis;
-    });
+  addTransaction(eiId: number, transaction: Omit<TransactionDto, 'id'>): Observable<EquityInvestmentDto> {
+    return this.api.post<EquityInvestmentDto>(`/investments/${eiId}/transactions`, transaction)
+      .pipe(
+        tap(updated => this.upsertEquityInvestment(updated)),
+        catchError(err => {
+          console.error('Failed to add transaction', err);
+          throw err;
+        })
+      );
   }
 
   // --- Portfolio Methods ---

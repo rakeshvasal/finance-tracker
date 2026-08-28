@@ -1,17 +1,14 @@
 import { Component, inject, computed, PLATFORM_ID, signal } from '@angular/core';
 import { CommonModule, CurrencyPipe, isPlatformBrowser } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { FinancialHealthService } from '../../services/financial-health.service';
 import { DataService } from '../../services/data.service';
 import { ToastService } from '../../services/toast.service';
-import { MarketDataService, SearchResult } from '../../services/market-data.service';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, NgxEchartsDirective, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, CurrencyPipe, NgxEchartsDirective],
   providers: [provideEchartsCore({ echarts: () => import('echarts') })],
   templateUrl: './dashboard.component.html',
   styles: []
@@ -21,17 +18,12 @@ export class DashboardComponent {
   private dataService = inject(DataService);
   private toastService = inject(ToastService);
   private platformId = inject(PLATFORM_ID);
-  private marketDataService = inject(MarketDataService);
 
   netWorth = this.healthService.totalNetWorth;
   assets = this.healthService.totalAssets;
   liabilities = this.healthService.totalLiabilities;
   healthScore = this.healthService.financialHealthScore;
 
-  searchControl = new FormControl('');
-  searchResults = signal<SearchResult[]>([]);
-  isSearching = signal(false);
-  showSearchResults = signal(false);
 
   netWorthChange = computed(() => {
     const history = this.healthService.historicalNetWorth();
@@ -130,60 +122,7 @@ export class DashboardComponent {
     };
   });
 
-  constructor() {
-    this.setupSearch();
-  }
-
-  setupSearch() {
-    this.searchControl.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged()
-      )
-      .subscribe(query => {
-        if (query && query.trim().length > 0) {
-          this.performSearch(query);
-        } else {
-          this.searchResults.set([]);
-          this.showSearchResults.set(false);
-        }
-      });
-  }
-
-  performSearch(query: string) {
-    this.isSearching.set(true);
-    this.marketDataService.searchAll(query).subscribe({
-      next: (results: SearchResult[]) => {
-        this.searchResults.set(results);
-        this.showSearchResults.set(true);
-        this.isSearching.set(false);
-      },
-      error: (err: any) => {
-        console.error('Search error:', err);
-        this.toastService.showError('Failed to search');
-        this.isSearching.set(false);
-      }
-    });
-  }
-
-  searchAll() {
-    const query = this.searchControl.value;
-    if (query && query.trim().length > 0) {
-      this.performSearch(query);
-    } else {
-      this.toastService.showError('Please enter a search query');
-    }
-  }
-
-  selectResult(result: SearchResult) {
-    this.toastService.showSuccess(`Selected ${result.name}`);
-    this.showSearchResults.set(false);
-    this.searchControl.reset();
-  }
-
-  closeSearch() {
-    this.showSearchResults.set(false);
-  }
+  constructor() {}
 
   exportData() {
     if (!isPlatformBrowser(this.platformId)) return;

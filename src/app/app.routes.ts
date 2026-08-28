@@ -12,6 +12,10 @@ export const routes: Routes = [
                 loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent)
             },
             {
+                path: 'watchlist',
+                loadComponent: () => import('./components/watchlist/watchlist.component').then(m => m.WatchlistComponent)
+            },
+            {
                 path: 'portfolio-manager',
                 loadComponent: () => import('./components/portfolio-manager/portfolio-manager.component').then(m => m.PortfolioManagerComponent)
             },

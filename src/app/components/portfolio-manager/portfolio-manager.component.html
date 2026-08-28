@@ -141,6 +141,24 @@
                     </select>
                 </div>
 
+                <!-- Units - for Gold and Bond -->
+                <div *ngIf="entryType() === 'Asset' && (assetForm.get('category')?.value === 'Gold' || assetForm.get('category')?.value === 'Bond')">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">
+                        {{ assetForm.get('category')?.value === 'Gold' ? 'Quantity (Grams)' : 'Quantity (Units)' }}
+                    </label>
+                    <input type="number" formControlName="units" step="0.01" placeholder="e.g. 100"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none">
+                </div>
+
+                <!-- Price Per Unit - for Gold and Bond -->
+                <div *ngIf="entryType() === 'Asset' && (assetForm.get('category')?.value === 'Gold' || assetForm.get('category')?.value === 'Bond')">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">
+                        {{ assetForm.get('category')?.value === 'Gold' ? 'Price per Gram (₹)' : 'Price per Unit (₹)' }}
+                    </label>
+                    <input type="number" formControlName="pricePerUnit" step="0.01" placeholder="e.g. 550"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none">
+                </div>
+
                 <!-- Remaining Period - for liabilities -->
                 <div *ngIf="entryType() === 'Liability'">
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Remaining Period (Months)</label>

@@ -29,6 +29,8 @@ export class InvestmentsSipsComponent {
   investForm: FormGroup;
 
   showHistoryId = signal<number | null>(null);
+  showTransactionForm = signal<number | null>(null);
+  transactionForm: FormGroup;
 
   constructor() {
     this.investForm = this.fb.group({
@@ -47,6 +49,21 @@ export class InvestmentsSipsComponent {
       units: ['', [Validators.min(0)]],
       buyPrice: ['', [Validators.min(0)]],
       currentUnitPrice: ['', [Validators.min(0)]]
+    });
+
+    this.transactionForm = this.fb.group({
+      transactionDate: ['', Validators.required],
+      transactionAmount: ['', [Validators.required, Validators.min(1)]],
+      transactionUnits: ['', [Validators.required, Validators.min(0.001)]],
+      transactionNav: ['', [Validators.required, Validators.min(0.01)]]
+    });
+
+    this.transactionForm.get('transactionUnits')?.valueChanges.subscribe(() => {
+      this.updateTransactionAmount();
+    });
+
+    this.transactionForm.get('transactionNav')?.valueChanges.subscribe(() => {
+      this.updateTransactionAmount();
     });
 
     this.investForm.get('type')?.valueChanges.subscribe(type => {
@@ -113,9 +130,64 @@ export class InvestmentsSipsComponent {
     this.showHistoryId.set(this.showHistoryId() === id ? null : id);
   }
 
+  toggleTransactionForm(id: number) {
+    this.showTransactionForm.set(this.showTransactionForm() === id ? null : id);
+    if (this.showTransactionForm() !== id) {
+      this.transactionForm.reset();
+    }
+  }
+
+  private updateTransactionAmount() {
+    const units = parseFloat(this.transactionForm.get('transactionUnits')?.value || '0');
+    const nav = parseFloat(this.transactionForm.get('transactionNav')?.value || '0');
+    if (units > 0 && nav > 0) {
+      const amount = units * nav;
+      this.transactionForm.patchValue({ transactionAmount: amount }, { emitEvent: false });
+    }
+  }
+
+  submitTransaction(investmentId: number) {
+    if (this.transactionForm.valid) {
+      const formVal = this.transactionForm.value;
+      const units = parseFloat(formVal.transactionUnits);
+      const nav = parseFloat(formVal.transactionNav);
+      const calculatedAmount = units * nav;
+
+      this.dataService.addTransaction(investmentId, {
+        date: this.formatDateWithoutZ(formVal.transactionDate),
+        amount: calculatedAmount,
+        type: 'SIP',
+        units,
+        nav
+      }).subscribe({
+        next: () => {
+          this.transactionForm.reset();
+          this.showTransactionForm.set(null);
+          this.toastService.showSuccess('Transaction added successfully');
+        },
+        error: (err: Error) => {
+          console.error('Failed to add transaction:', err);
+          this.toastService.showError('Failed to add transaction');
+        }
+      });
+    } else {
+      Object.keys(this.transactionForm.controls).forEach(key => {
+        this.transactionForm.get(key)?.markAsTouched();
+      });
+    }
+  }
+
   deleteInvestment(ei: EquityInvestmentDto) {
     if (confirm(`Are you sure you want to delete the investment in ${ei.name}?`)) {
-      this.dataService.deleteEquityInvestment(ei.id);
+      this.dataService.deleteEquityInvestment(ei.id).subscribe({
+        next: () => {
+          this.toastService.showSuccess('Investment deleted successfully');
+        },
+        error: (err: Error) => {
+          console.error('Failed to delete investment:', err);
+          this.toastService.showError('Failed to delete investment');
+        }
+      });
     }
   }
 
@@ -126,14 +198,22 @@ export class InvestmentsSipsComponent {
       if (!formVal.isNewFund && formVal.type === 'Lumpsum') {
         // Add Lumpsum to existing fund
         this.dataService.addTransaction(Number(formVal.existingFundId), {
-          date: new Date(formVal.startDate).toISOString(),
+          date: this.formatDateWithoutZ(formVal.startDate),
           amount: formVal.amount,
           type: 'Lumpsum'
+        }).subscribe({
+          next: () => {
+            this.cancelEdit();
+            this.showForm.set(false);
+            this.toastService.showSuccess('Lumpsum added successfully');
+          },
+          error: (err: Error) => {
+            console.error('Failed to add lumpsum:', err);
+            this.toastService.showError('Failed to add lumpsum investment');
+          }
         });
       } else {
         const id = this.editingId() ?? (Math.max(...this.equityInvestments().map(s => s.id), 0) + 1);
-
-        // Find existing record to preserve principal if editing
         const existing = this.equityInvestments().find(ei => ei.id === id);
 
         let principal: number;
@@ -141,14 +221,13 @@ export class InvestmentsSipsComponent {
         let amount: number;
 
         if (formVal.type === 'Stock') {
-          // For stocks: calculate based on units and prices
           const units = parseFloat(formVal.units) || 0;
           const buyPrice = parseFloat(formVal.buyPrice) || 0;
           const currentUnitPrice = parseFloat(formVal.currentUnitPrice) || 0;
-          
+
           principal = units * buyPrice;
           currentValue = units * currentUnitPrice;
-          amount = units; // Store units as amount for stock
+          amount = units;
         } else {
           principal = this.editingId() ? (formVal.totalInvested || existing?.principal || formVal.amount) : (formVal.totalInvested || formVal.amount);
           currentValue = formVal.currentValue || (this.editingId() ? existing?.currentValue : formVal.amount) || formVal.amount;
@@ -162,24 +241,35 @@ export class InvestmentsSipsComponent {
           amount,
           principal,
           currentValue,
-          startDate: new Date(formVal.startDate).toISOString(),
-          nextDueDate: formVal.nextDueDate ? new Date(formVal.nextDueDate).toISOString() : undefined,
+          startDate: this.formatDateWithoutZ(formVal.startDate),
+          nextDueDate: formVal.nextDueDate ? this.formatDateWithoutZ(formVal.nextDueDate) : undefined,
           frequency: formVal.frequency,
           status: formVal.status,
           portfolioId: 1,
           transactions: this.editingId() ?
             (existing?.transactions || []) :
-            [{ id: 1, date: new Date(formVal.startDate).toISOString(), amount: formVal.amount, type: formVal.type as 'SIP' | 'Lumpsum' }],
+            [{ id: 1, date: this.formatDateWithoutZ(formVal.startDate), amount: formVal.amount, type: formVal.type as 'SIP' | 'Lumpsum' }],
           units: formVal.type === 'Stock' ? parseFloat(formVal.units) || 0 : undefined,
           buyPrice: formVal.type === 'Stock' ? parseFloat(formVal.buyPrice) || 0 : undefined,
           currentUnitPrice: formVal.type === 'Stock' ? parseFloat(formVal.currentUnitPrice) || 0 : undefined
         };
 
-        this.dataService.upsertEquityInvestment(payload);
-      }
+        const apiCall = this.editingId()
+          ? this.dataService.updateEquityInvestment(id, payload)
+          : this.dataService.createEquityInvestment(payload);
 
-      this.cancelEdit();
-      this.showForm.set(false);
+        apiCall.subscribe({
+          next: () => {
+            this.cancelEdit();
+            this.showForm.set(false);
+            this.toastService.showSuccess(this.editingId() ? 'Investment updated successfully' : 'Investment created successfully');
+          },
+          error: (err: Error) => {
+            console.error('Failed to save investment:', err);
+            this.toastService.showError('Failed to save investment');
+          }
+        });
+      }
     } else {
       Object.keys(this.investForm.controls).forEach(key => {
         this.investForm.get(key)?.markAsTouched();
@@ -241,6 +331,18 @@ export class InvestmentsSipsComponent {
     return (ei.transactions || []).slice(0, 10).sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
+  }
+
+  private formatDateWithoutZ(dateString: string): string {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
   }
 
   searchStocks(query: string): void {
