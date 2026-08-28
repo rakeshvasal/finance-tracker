@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { MarketDataService, SearchResult } from '../../services/market-data.service';
 
-interface WatchlistItem extends SearchResult {
+export interface WatchlistItem extends SearchResult {
   id?: number;
   latestPrice?: number;
   latestNav?: number;
@@ -40,7 +40,7 @@ export class WatchlistComponent {
 
   watchlistData = signal<WatchlistResponse>({ items: [], stocks: [], mutualFunds: [] });
   isLoading = signal(false);
-  portfolioId = 1;
+  readonly portfolioId = 1;
 
   stocks = computed(() => this.watchlistData().stocks);
   mutualFunds = computed(() => this.watchlistData().mutualFunds);
@@ -105,7 +105,7 @@ export class WatchlistComponent {
     });
   }
 
-  addToWatchlist(result: SearchResult) {
+  addToWatchlist(result: WatchlistItem) {
     console.log('Adding to watchlist:', result);
     this.marketDataService.addToWatchlist(this.portfolioId, result).subscribe({
       next: () => {
