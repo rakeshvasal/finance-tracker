@@ -1,0 +1,211 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-800">Watchlist</h1>
+    <p class="text-sm text-slate-500">Track your favorite stocks and mutual funds</p>
+  </div>
+
+  <!-- Search Section -->
+  <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold text-slate-800">Search & Add Items</h2>
+      <div class="flex items-center gap-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="searchType"
+            value="all"
+            [checked]="searchTypeFilter() === 'all'"
+            (change)="setSearchFilter('all')"
+            class="w-4 h-4 text-brand-600 cursor-pointer">
+          <span class="text-sm font-medium text-slate-600">All</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="searchType"
+            value="stocks"
+            [checked]="searchTypeFilter() === 'stocks'"
+            (change)="setSearchFilter('stocks')"
+            class="w-4 h-4 text-brand-600 cursor-pointer">
+          <span class="text-sm font-medium text-slate-600">Stocks</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="searchType"
+            value="mutualfunds"
+            [checked]="searchTypeFilter() === 'mutualfunds'"
+            (change)="setSearchFilter('mutualfunds')"
+            class="w-4 h-4 text-brand-600 cursor-pointer">
+          <span class="text-sm font-medium text-slate-600">Mutual Funds</span>
+        </label>
+      </div>
+    </div>
+    <div class="relative">
+      <div class="flex gap-2">
+        <div class="relative flex-1">
+          <input
+            type="text"
+            [formControl]="searchControl"
+            [placeholder]="searchTypeFilter() === 'stocks' ? 'Search stocks by name or symbol...' : searchTypeFilter() === 'mutualfunds' ? 'Search mutual funds by name...' : 'Search stocks or mutual funds by name...'"
+            class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+        </div>
+        <button
+          type="button"
+          (click)="onSearchButtonClick()"
+          [disabled]="isSearching() || !searchControl.value || searchControl.value.trim().length === 0"
+          class="px-6 py-2 bg-brand-600 hover:bg-brand-700 disabled:bg-slate-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2">
+          <svg *ngIf="!isSearching()" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <svg *ngIf="isSearching()" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Search</span>
+        </button>
+      </div>
+
+      <!-- Search Results Dropdown -->
+      <div *ngIf="showSearchResults() && searchResults().length > 0"
+        class="absolute top-14 left-0 w-96 max-h-96 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-y-auto">
+        <div *ngFor="let result of searchResults()"
+          class="px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <p class="font-medium text-slate-800">{{ result.name }}</p>
+              <div class="flex items-center gap-2 text-xs text-slate-500">
+                <span>{{ result.symbol }}</span>
+                <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span [ngClass]="result.type === 'Stock' ? 'text-blue-600 font-medium' : 'text-green-600 font-medium'">
+                  {{ result.type === 'Stock' ? 'Stock' : 'Mutual Fund' }}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              (click)="addToWatchlist(result)"
+              class="ml-2 px-3 py-1 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium rounded transition-colors">
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Click outside to close -->
+      <div *ngIf="showSearchResults()" (click)="closeSearch()" class="fixed inset-0 z-40"></div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="flex items-center justify-center py-12">
+    <svg class="animate-spin w-8 h-8 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading() && !hasItems()" class="bg-white rounded-2xl p-12 shadow-sm border border-slate-100 text-center">
+    <svg class="w-16 h-16 mx-auto mb-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V5z" />
+    </svg>
+    <h3 class="text-lg font-medium text-slate-800 mb-2">No items in your watchlist</h3>
+    <p class="text-slate-500 mb-6">Search for stocks or mutual funds above to get started</p>
+  </div>
+
+  <!-- Stocks Section -->
+  <div *ngIf="!isLoading() && stocks().length > 0">
+    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+      Stocks
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div *ngFor="let item of stocks()"
+        class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex-1">
+            <h3 class="font-bold text-slate-800">{{ item.name }}</h3>
+            <p class="text-sm text-slate-500">{{ item.symbol }} • {{ item.exchange }}</p>
+          </div>
+          <button
+            type="button"
+            (click)="removeFromWatchlist(item.id!)"
+            class="ml-2 p-2 text-slate-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">{{ getValueLabel(item) }}</span>
+            <span class="font-bold text-slate-800" *ngIf="getLatestValue(item); else noValue">
+              ₹{{ getLatestValue(item) | number:'1.2-2' }}
+            </span>
+            <ng-template #noValue>
+              <span class="text-sm text-slate-400">-</span>
+            </ng-template>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-500">
+            <span>Last Updated</span>
+            <span *ngIf="item.lastUpdated; else noDate">{{ item.lastUpdated | date:'short' }}</span>
+            <ng-template #noDate>
+              <span>-</span>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mutual Funds Section -->
+  <div *ngIf="!isLoading() && mutualFunds().length > 0">
+    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span class="w-3 h-3 rounded-full bg-green-500"></span>
+      Mutual Funds
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div *ngFor="let item of mutualFunds()"
+        class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex-1">
+            <h3 class="font-bold text-slate-800">{{ item.schemeName || item.name }}</h3>
+            <p class="text-sm text-slate-500">{{ item.schemeCode }}</p>
+          </div>
+          <button
+            type="button"
+            (click)="removeFromWatchlist(item.id!)"
+            class="ml-2 p-2 text-slate-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">{{ getValueLabel(item) }}</span>
+            <span class="font-bold text-slate-800" *ngIf="getLatestValue(item); else noValue2">
+              ₹{{ getLatestValue(item) | number:'1.2-2' }}
+            </span>
+            <ng-template #noValue2>
+              <span class="text-sm text-slate-400">-</span>
+            </ng-template>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-500">
+            <span>Last Updated</span>
+            <span *ngIf="item.lastUpdated; else noDate2">{{ item.lastUpdated | date:'short' }}</span>
+            <ng-template #noDate2>
+              <span>-</span>
+            </ng-template>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-500">
+            <span>Category</span>
+            <span>{{ item.category || '-' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
