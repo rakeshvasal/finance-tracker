@@ -41,6 +41,8 @@ export interface EquityInvestmentDto {
     id: number;
     portfolioId: number;
     name: string;
+    schemeCode?: string;
+    schemeName?: string;
     type: 'SIP' | 'Lumpsum' | 'Stock';
     amount: number;
     principal: number;

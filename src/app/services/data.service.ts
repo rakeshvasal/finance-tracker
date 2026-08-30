@@ -71,11 +71,16 @@ export class DataService {
 
   getEquityInvestments(): Observable<EquityInvestmentDto[]> {
     return this.api.get<EquityInvestmentDto[]>('/investments')
-      .pipe(tap(data => this.equityInvestmentsState.set(data)),
-            catchError(err => {
-              console.error('Failed to fetch investments', err);
-              return of(this.equityInvestmentsState());
-            }));
+      .pipe(
+        tap(data => {
+          const mappedData = data.map(investment => this.mapInvestmentData(investment));
+          this.equityInvestmentsState.set(mappedData);
+        }),
+        catchError(err => {
+          console.error('Failed to fetch investments', err);
+          return of(this.equityInvestmentsState());
+        })
+      );
   }
 
   getUpcomingMaturities(): Observable<UpcomingMaturityDto[]> {
@@ -321,6 +326,16 @@ export class DataService {
     return of({ success: true });
   }
 
+
+  private mapInvestmentData(investment: EquityInvestmentDto): EquityInvestmentDto {
+    if (investment.schemeName && !investment.name) {
+      return {
+        ...investment,
+        name: investment.schemeName
+      };
+    }
+    return investment;
+  }
 
   private getEmptyPortfolio(): PortfolioDto {
     return {
