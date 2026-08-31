@@ -314,9 +314,10 @@ export class PortfolioManagerComponent {
   recalculatePortfolio() {
     this.isRecalculating.set(true);
     this.dataService.recalculatePortfolio().subscribe({
-      next: () => {
+      next: (response: any) => {
         this.isRecalculating.set(false);
-        this.toastService.showSuccess('Portfolio recalculated successfully');
+        const message = response?._message || 'Portfolio recalculated successfully';
+        this.toastService.showSuccess(message);
       },
       error: (err: any) => {
         this.isRecalculating.set(false);
