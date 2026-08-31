@@ -268,14 +268,16 @@
                         </svg>
                         <span class="text-[10px] font-bold">Next: {{ getNextPayoutDate(ei) | date:'MMM dd' }}</span>
                     </div>
-                    <div *ngIf="ei.units" class="text-xs">
-                        <div class="font-bold text-slate-600">Units: <span class="font-black">{{ ei.units | number:'1.3-3' }}</span></div>
+                    <div *ngIf="ei.totalUnits" class="text-xs">
+                        <div class="font-bold text-slate-600">Total Units: <span class="font-black">{{ ei.totalUnits | number:'1.3-3' }}</span></div>
+                        <div class="text-[10px] text-slate-400" *ngIf="ei.currentNAV">{{ ei.currentNAV | currency:'INR':'symbol':'1.2-2' }}</div>
                     </div>
                 </div>
 
                 <div *ngIf="ei.type === 'Lumpsum'" class="flex items-center gap-4 text-slate-500">
-                    <div *ngIf="ei.units" class="text-xs">
-                        <div class="font-bold text-slate-600">Units: <span class="font-black">{{ ei.units | number:'1.3-3' }}</span></div>
+                    <div *ngIf="ei.totalUnits" class="text-xs">
+                        <div class="font-bold text-slate-600">Total Units: <span class="font-black">{{ ei.totalUnits | number:'1.3-3' }}</span></div>
+                        <div class="text-[10px] text-slate-400" *ngIf="ei.currentNAV">{{ ei.currentNAV | currency:'INR':'symbol':'1.2-2' }}</div>
                     </div>
                 </div>
 

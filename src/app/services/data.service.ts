@@ -97,7 +97,7 @@ export class DataService {
     const manualAssets = this.assetsState();
     const equityAssets: AssetDto[] = this.equityInvestmentsState().map(ei => ({
       id: ei.id,
-      name: ei.name,
+      name: ei.schemeName || ei.name,
       category: 'Equity',
       principal: ei.principal,
       currentValue: ei.currentValue,

@@ -56,6 +56,9 @@ export interface EquityInvestmentDto {
     units?: number;
     buyPrice?: number;
     currentUnitPrice?: number;
+    // Mutual Fund / Equity fields
+    currentNAV?: number;
+    totalUnits?: number;
     // Backend-calculated fields
     cagr?: number;
     absoluteReturns?: number;
